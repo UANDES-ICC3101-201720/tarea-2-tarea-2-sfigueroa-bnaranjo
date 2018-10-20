@@ -15,7 +15,19 @@ how to use the page table and disk interfaces.
 #include <string.h>
 #include <errno.h>
 
-void page_fault_handler( struct page_table *pt, int page )
+void page_fault_handlerFIFO( struct page_table *pt, int page )
+{
+
+	printf("page fault on page #%d\n",page);
+	exit(1);
+}
+void page_fault_handlerLRU( struct page_table *pt, int page )
+{
+	page_table_set_entry(pt,page,page,PROT_READ|PROT_WRITE);
+	printf("page fault on page #%d\n",page);
+	exit(1);
+}
+void page_fault_handlerOUR( struct page_table *pt, int page )
 {
 	printf("page fault on page #%d\n",page);
 	exit(1);
@@ -31,6 +43,7 @@ int main( int argc, char *argv[] )
 
 	int npages = atoi(argv[1]);
 	int nframes = atoi(argv[2]);
+	char *algorithm = argv[3];
 	const char *program = argv[4];
 
 	struct disk *disk = disk_open("myvirtualdisk",npages);
@@ -38,16 +51,27 @@ int main( int argc, char *argv[] )
 		fprintf(stderr,"couldn't create virtual disk: %s\n",strerror(errno));
 		return 1;
 	}
+	//if the argc[3] it's the tipe of the handler we Make
+	struct page_table *pt;
+	if (strcmp(algorithm, "rand") == 0){
+		pt = page_table_create( npages, nframes, page_fault_handlerLRU );
+	}
+	else if (strcmp(algorithm, "fifo") == 0){
+		pt = page_table_create( npages, nframes, page_fault_handlerFIFO );
+	}
+	else if (strcmp(algorithm, "our") == 0){
+		pt = page_table_create( npages, nframes, page_fault_handlerOUR );
+	}
+	else{
+		fprintf(stderr,"algorithm error");
+		exit(1);
+	}
 
-
-	struct page_table *pt = page_table_create( npages, nframes, page_fault_handler );
 	if(!pt) {
 		fprintf(stderr,"couldn't create page table: %s\n",strerror(errno));
 		return 1;
 	}
-
 	char *virtmem = page_table_get_virtmem(pt);
-
 	char *physmem = page_table_get_physmem(pt);
 
 	if(!strcmp(program,"sort")) {
