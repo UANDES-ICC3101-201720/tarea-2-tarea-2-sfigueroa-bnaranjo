@@ -14,18 +14,65 @@ how to use the page table and disk interfaces.
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
+//Create the structure disk that we will need
+struct disk *disk;
 
+//Create the linked list for poping and append easily
+struct node{
+	int value;
+	int page;
+	struct node *next;
+};
+
+struct list{
+	struct node *node;
+};
+
+void pop(struct node *initial){
+	struct node *next = initial;
+	struct node *before;
+	while(next->next != NULL){
+		before = next;
+		next = next->next;
+	}
+	before->next = NULL;
+}
+
+void append(int nvalue, int npage, struct node * initial, struct node * next){
+	next = initial;
+	if (next != 0){
+		while (next -> next != 0){
+			next = next -> next;
+		}
+	}
+	next->next = malloc(sizeof(struct node));
+	next = next->next;
+	next->value = nvalue;
+	next->page = npage;
+}
+
+void pop_first(struct node *initial){
+	struct node *next = initial;
+	initial->value = next->value;
+	initial->page = next->page;
+	initial->next = next->next;
+}
+
+//Page_Fault_Handlers
 void page_fault_handlerFIFO( struct page_table *pt, int page )
 {
-
 	printf("page fault on page #%d\n",page);
 	exit(1);
 }
 void page_fault_handlerLRU( struct page_table *pt, int page )
 {
-	page_table_set_entry(pt,page,page,PROT_READ|PROT_WRITE);
+
+	page_table_set_entry(pt, page, page, PROT_READ|PROT_WRITE);
+	page_table_print(pt);
+	page_table_get_entry(pt, 0, 0, "wr");
 	printf("page fault on page #%d\n",page);
 	exit(1);
+
 }
 void page_fault_handlerOUR( struct page_table *pt, int page )
 {
@@ -62,16 +109,24 @@ int main( int argc, char *argv[] )
 	else if (strcmp(algorithm, "our") == 0){
 		pt = page_table_create( npages, nframes, page_fault_handlerOUR );
 	}
+
 	else{
 		fprintf(stderr,"algorithm error");
 		exit(1);
 	}
+	//Frame table
+	int frame_tables[nframes];
+	for (int i = 0; i < nframes; ++i){
+		frame_tables[i] = i;
+	}
+
 
 	if(!pt) {
 		fprintf(stderr,"couldn't create page table: %s\n",strerror(errno));
 		return 1;
 	}
 	char *virtmem = page_table_get_virtmem(pt);
+
 	char *physmem = page_table_get_physmem(pt);
 
 	if(!strcmp(program,"sort")) {
