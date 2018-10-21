@@ -14,9 +14,16 @@ how to use the page table and disk interfaces.
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
-//Create the structure disk that we will need
-struct disk *disk;
 
+int nframes;
+int writesdisk = 0;
+int readdisk = 0;
+char *physmem;
+struct page_table *pt;
+struct disk *disk;
+char *algorithm;
+int npages;
+struct list *head;
 //Create the linked list for poping and append easily
 struct node{
 	int value;
@@ -51,25 +58,46 @@ void append(int nvalue, int npage, struct node * initial, struct node * next){
 	next->page = npage;
 }
 
-void pop_first(struct node *initial){
-	struct node *next = initial;
-	initial->value = next->value;
-	initial->page = next->page;
-	initial->next = next->next;
+void pop_first(){
+	head->node = head->node->next;
+}
+//End linked lists
+struct node *lPage(int page){
+	struct node * node = head->node;
+	while (node != NULL){
+		if(node->page == page){
+			return node;
+		}
+		node = node->next;
+	}
+	return NULL;
 }
 
+
 //Page_Fault_Handlers
+
 void page_fault_handlerFIFO( struct page_table *pt, int page )
 {
+	int frame = head->node->value;
+	int vpage = head->node->page;
+	pop_first(head);
+	struct node *next = head->node;
+	append(frame, page, head->node, next);
+
+	disk_write(disk, vpage, &physmem[frame * PAGE_SIZE]);
+	writesdisk++;
+	disk_read(disk, page, &physmem[frame * PAGE_SIZE]);
+	readdisk++;
+
+	page_table_set_entry(pt, vpage, frame, 0);
+	page_table_set_entry(pt, page, frame, PROT_READ);
+
+	page_table_print(pt);
 	printf("page fault on page #%d\n",page);
 	exit(1);
 }
 void page_fault_handlerLRU( struct page_table *pt, int page )
 {
-
-	page_table_set_entry(pt, page, page, PROT_READ|PROT_WRITE);
-	page_table_print(pt);
-	page_table_get_entry(pt, 0, 0, "wr");
 	printf("page fault on page #%d\n",page);
 	exit(1);
 
@@ -80,6 +108,21 @@ void page_fault_handlerOUR( struct page_table *pt, int page )
 	exit(1);
 }
 
+
+void page_fault_handler(struct page_table *pt, int page){
+	struct node *loaded = lPage(page);
+	
+	if (strcmp(algorithm, "rand") == 0){
+		pt = page_table_create( npages, nframes, page_fault_handlerLRU );
+	}
+	else if (strcmp(algorithm, "fifo") == 0){
+		pt = page_table_create( npages, nframes, page_fault_handlerFIFO );
+	}
+	else if (strcmp(algorithm, "our") == 0){
+		pt = page_table_create( npages, nframes, page_fault_handlerOUR );
+	}
+}
+
 int main( int argc, char *argv[] )
 {
 	if(argc!=5) {
@@ -87,6 +130,9 @@ int main( int argc, char *argv[] )
 		printf("use: virtmem <npages> <nframes> <lru|fifo> <sort|scan|focus>\n");
 		return 1;
 	}
+
+	head = malloc(sizeof(struct list));
+	head->node = malloc(sizeof(struct node));
 
 	int npages = atoi(argv[1]);
 	int nframes = atoi(argv[2]);
@@ -99,35 +145,27 @@ int main( int argc, char *argv[] )
 		return 1;
 	}
 	//if the argc[3] it's the tipe of the handler we Make
-	struct page_table *pt;
-	if (strcmp(algorithm, "rand") == 0){
-		pt = page_table_create( npages, nframes, page_fault_handlerLRU );
-	}
-	else if (strcmp(algorithm, "fifo") == 0){
-		pt = page_table_create( npages, nframes, page_fault_handlerFIFO );
-	}
-	else if (strcmp(algorithm, "our") == 0){
-		pt = page_table_create( npages, nframes, page_fault_handlerOUR );
-	}
+
 
 	else{
 		fprintf(stderr,"algorithm error");
 		exit(1);
 	}
-	//Frame table
-	int frame_tables[nframes];
-	for (int i = 0; i < nframes; ++i){
-		frame_tables[i] = i;
-	}
-
 
 	if(!pt) {
 		fprintf(stderr,"couldn't create page table: %s\n",strerror(errno));
 		return 1;
 	}
 	char *virtmem = page_table_get_virtmem(pt);
+	physmem = page_table_get_physmem(pt);
 
-	char *physmem = page_table_get_physmem(pt);
+	//Frame table
+	int frame_tables[nframes];
+
+	for (int i = 0; i < nframes; ++i){
+		frame_tables[i] = i;
+		disk_write(disk, i, &physmem[i * BLOCK_SIZE]);
+	}
 
 	if(!strcmp(program,"sort")) {
 		sort_program(virtmem,npages*PAGE_SIZE);
