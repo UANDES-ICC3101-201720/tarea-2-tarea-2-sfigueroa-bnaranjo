@@ -63,6 +63,7 @@ void pop_first(){
 	head->node = head->node->next;
 }
 //End linked lists
+
 struct node *lPage(int page){
 	struct node * node = head->node;
 	while (node != NULL){
@@ -169,11 +170,23 @@ int main( int argc, char *argv[] )
 		fprintf(stderr,"couldn't create virtual disk: %s\n",strerror(errno));
 		return 1;
 	}
-	//if the argc[3] it's the tipe of the handler we Make
+	//if the argv[3] it's the tipe of the handler we make
+	if (!strcmp(algorithm, "rand")){
+		fprintf(stderr, "Using rand algorithm");
+		return 1;
+	}
+	else if (!strcmp(algorithm, "FIFO")){
+		fprintf(stderr, "Using FIFO algorithm");
+		return 1;
 
+	}
+	else if (!strcmp(algorithm, "custom")){
+		fprintf(stderr, "Using custom algorithm");
+		return 1;
+
+	}
 
 	else{
-
 		fprintf(stderr,"algorithm error");
 		exit(1);
 	}
