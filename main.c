@@ -111,7 +111,7 @@ void page_fault_handlerOUR( struct page_table *pt, int page )
 
 void page_fault_handler(struct page_table *pt, int page){
 	struct node *loaded = lPage(page);
-	
+
 	if (strcmp(algorithm, "rand") == 0){
 		pt = page_table_create( npages, nframes, page_fault_handlerLRU );
 	}
