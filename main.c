@@ -24,6 +24,7 @@ struct disk *disk;
 char *algorithm;
 int npages;
 struct list *head;
+int *frame_tables;
 //Create the linked list for poping and append easily
 struct node{
 	int value;
@@ -110,16 +111,39 @@ void page_fault_handlerOUR( struct page_table *pt, int page )
 
 
 void page_fault_handler(struct page_table *pt, int page){
-	struct node *loaded = lPage(page);
-
-	if (strcmp(algorithm, "rand") == 0){
-		pt = page_table_create( npages, nframes, page_fault_handlerLRU );
+	struct node *loadedp = lPage(page);
+	if(loadedp != NULL){
+		page_table_set_entry(pt, page, loadedp->value, PROT_READ|PROT_WRITE);
 	}
-	else if (strcmp(algorithm, "fifo") == 0){
-		pt = page_table_create( npages, nframes, page_fault_handlerFIFO );
+	int permission = 0;
+	for (int i = 0 ; i <nframes; i++){
+		if(frame_tables[i] != -1){
+			disk_read(disk, page, &physmem[i * PAGE_SIZE]);
+			readdisk++;
+			page_table_set_entry(pt, page, i, PROT_READ);
+			frame_tables[i] = -1;
+			struct node *next = head->node;
+			if(i == 0){
+				head->node->value = 0;
+				head->node->page = page;
+				permission = 1;
+				break;
+			}
+			append(i, page, head->node, next);
+			permission = 1;
+			break;
+		}
 	}
-	else if (strcmp(algorithm, "our") == 0){
-		pt = page_table_create( npages, nframes, page_fault_handlerOUR );
+	if(permission != 1){
+		if (strcmp(algorithm, "rand") == 0){
+			pt = page_table_create( npages, nframes, page_fault_handlerLRU );
+		}
+		else if (strcmp(algorithm, "fifo") == 0){
+			pt = page_table_create( npages, nframes, page_fault_handlerFIFO );
+		}
+		else if (strcmp(algorithm, "our") == 0){
+			pt = page_table_create( npages, nframes, page_fault_handlerOUR );
+		}
 	}
 }
 
@@ -136,10 +160,11 @@ int main( int argc, char *argv[] )
 
 	int npages = atoi(argv[1]);
 	int nframes = atoi(argv[2]);
-	char *algorithm = argv[3];
+	algorithm = argv[3];
 	const char *program = argv[4];
 
 	struct disk *disk = disk_open("myvirtualdisk",npages);
+
 	if(!disk) {
 		fprintf(stderr,"couldn't create virtual disk: %s\n",strerror(errno));
 		return 1;
@@ -148,6 +173,7 @@ int main( int argc, char *argv[] )
 
 
 	else{
+
 		fprintf(stderr,"algorithm error");
 		exit(1);
 	}
@@ -160,7 +186,7 @@ int main( int argc, char *argv[] )
 	physmem = page_table_get_physmem(pt);
 
 	//Frame table
-	int frame_tables[nframes];
+
 
 	for (int i = 0; i < nframes; ++i){
 		frame_tables[i] = i;
