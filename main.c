@@ -63,7 +63,6 @@ void pop_first(){
 	head->node = head->node->next;
 }
 //End linked lists
-
 struct node *lPage(int page){
 	struct node * node = head->node;
 	while (node != NULL){
@@ -164,47 +163,32 @@ int main( int argc, char *argv[] )
 	algorithm = argv[3];
 	const char *program = argv[4];
 
-	struct disk *disk = disk_open("myvirtualdisk",npages);
+	//Frame table
+	for (int i = 0; i < nframes; ++i){
+		frame_tables[i] = i;
+	}
+	disk = disk_open("myvirtualdisk",npages);
 
 	if(!disk) {
 		fprintf(stderr,"couldn't create virtual disk: %s\n",strerror(errno));
 		return 1;
 	}
-	//if the argv[3] it's the tipe of the handler we make
-	if (!strcmp(algorithm, "rand")){
-		fprintf(stderr, "Using rand algorithm");
-		return 1;
-	}
-	else if (!strcmp(algorithm, "FIFO")){
-		fprintf(stderr, "Using FIFO algorithm");
-		return 1;
+	//if the argc[3] it's the tipe of the handler we Make
 
-	}
-	else if (!strcmp(algorithm, "custom")){
-		fprintf(stderr, "Using custom algorithm");
-		return 1;
-
-	}
 
 	else{
 		fprintf(stderr,"algorithm error");
 		exit(1);
 	}
 
-	if(!pt) {
+	if(!pt){
 		fprintf(stderr,"couldn't create page table: %s\n",strerror(errno));
 		return 1;
 	}
 	char *virtmem = page_table_get_virtmem(pt);
 	physmem = page_table_get_physmem(pt);
 
-	//Frame table
 
-
-	for (int i = 0; i < nframes; ++i){
-		frame_tables[i] = i;
-		disk_write(disk, i, &physmem[i * BLOCK_SIZE]);
-	}
 
 	if(!strcmp(program,"sort")) {
 		sort_program(virtmem,npages*PAGE_SIZE);
