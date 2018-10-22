@@ -57,6 +57,16 @@ void append(int nvalue, int npage, struct node * initial){
 	next->page = npage;
 }
 
+void push_fr(struct node * head, int page, int frame){
+	struct node * current = head;
+	while(current->next != NULL){
+		current = current->next;
+	}
+	current->next = malloc(sizeof(struct node));
+	current->next->page = page;
+	current->next->frame = frame;
+	current->next->next = NULL;
+}
 
 void print_list(struct node * list){
     struct node * current = list;
@@ -80,7 +90,7 @@ void page_fault_handler_FIFO( struct page_table *pt, int page )
 		node = node->next;
 	}
 	char * physical_pointer;
-	physical_pointer = page_rable_get_physmem(pt);
+	physical_pointer = page_table_get_physmem(pt);
 
 	if(using_frame == -1){
 		node = head;
@@ -88,8 +98,7 @@ void page_fault_handler_FIFO( struct page_table *pt, int page )
 		using_frame = node->frame;
 		disk_write(disk, old_page, &physical_pointer[using_frame * PAGE_SIZE]);
 		page_table_set_entry(pt, old_page, using_frame, 0);
-
-		popl(head, page, using_frame);
+		push_fr(head, page, using_frame);
 		popf(&head);
 	}
 	if(using_frame != -1){
@@ -97,11 +106,13 @@ void page_fault_handler_FIFO( struct page_table *pt, int page )
 		disk_read(disk, page, &physical_pointer[using_frame * PAGE_SIZE]);
 	}
 }
+
 void page_fault_handler_RAND( struct page_table *pt, int page )
 {
 	printf("page fault on page #%d\n",page);
 	exit(1);
 }
+
 void page_fault_handler_CUSTOM( struct page_table *pt, int page )
 {
 	printf("page fault on page #%d\n",page);
@@ -128,13 +139,15 @@ int main( int argc, char *argv[] )
 		fprintf(stderr,"couldn't create virtual disk: %s\n",strerror(errno));
 		return 1;
 	}
+	head = malloc(sizeof(struct node));
 	head->frame = 0;
 	head->page = -1;
 	head->next = NULL;
 
-	for(int i = 0; i<nframes; i++){
-		append(i+1,-1,head);
+	for(int i = 1; i<nframes; i++){
+		push_fr(head, -1, i);
 	}
+
 	if (strcmp(algorithm, "rand") == 0){
 			pt = page_table_create( npages, nframes, page_fault_handler_RAND );
 		}
