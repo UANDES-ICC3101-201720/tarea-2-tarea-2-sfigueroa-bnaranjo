@@ -103,7 +103,7 @@ void page_fault_handlerLRU( struct page_table *pt, int page )
 	exit(1);
 
 }
-void page_fault_handlerOUR( struct page_table *pt, int page )
+void page_fault_handler_CUSTOM( struct page_table *pt, int page )
 {
 	printf("page fault on page #%d\n",page);
 	exit(1);
@@ -142,7 +142,7 @@ void page_fault_handler(struct page_table *pt, int page){
 			pt = page_table_create( npages, nframes, page_fault_handlerFIFO );
 		}
 		else if (strcmp(algorithm, "our") == 0){
-			pt = page_table_create( npages, nframes, page_fault_handlerOUR );
+			pt = page_table_create( npages, nframes, page_fault_handler_CUSTOM );
 		}
 	}
 }
@@ -154,7 +154,6 @@ int main( int argc, char *argv[] )
 		printf("use: virtmem <npages> <nframes> <lru|fifo> <sort|scan|focus>\n");
 		return 1;
 	}
-
 	head = malloc(sizeof(struct list));
 	head->node = malloc(sizeof(struct node));
 
@@ -163,7 +162,10 @@ int main( int argc, char *argv[] )
 	algorithm = argv[3];
 	const char *program = argv[4];
 
+	
+
 	//Frame table
+	fprintf(stderr, "Setting up frame_table\n");
 	for (int i = 0; i < nframes; ++i){
 		frame_tables[i] = i;
 	}
@@ -173,8 +175,16 @@ int main( int argc, char *argv[] )
 		fprintf(stderr,"couldn't create virtual disk: %s\n",strerror(errno));
 		return 1;
 	}
-	//if the argc[3] it's the tipe of the handler we Make
-
+	//if the argv[3] it's the tipe of the handler we Make
+	if (strcmp(algorithm, "rand")){
+		fprintf(stderr, "Using rand algorithm");
+	}
+	else if (strcmp(algorithm, "FIFO")){
+		fprintf(stderr, "Using FIFO algorithm");
+	}
+	else if (strcmp(algorithm, "custom")){
+		fprintf(stderr, "Using custom algorithm");
+	}
 
 	else{
 		fprintf(stderr,"algorithm error");
