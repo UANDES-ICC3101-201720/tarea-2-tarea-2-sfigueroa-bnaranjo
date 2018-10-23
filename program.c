@@ -25,7 +25,7 @@ static int compare_bytes( const void *pa, const void *pb )
 
 void focus_program( char *data, int length )
 {
-	int total=0;
+	unsigned long long total=0;
 	int i,j;
 
 	srand(38290);
@@ -46,14 +46,13 @@ void focus_program( char *data, int length )
 		total += data[i];
 	}
 
-	printf("focus result is %d\n",total);
+	printf("focus result is %lld\n",total);
 }
 
 void sort_program( char *data, int length )
 {
 	int total = 0;
 	int i;
-
 	srand(4856);
 
 	for(i=0;i<length;i++) {

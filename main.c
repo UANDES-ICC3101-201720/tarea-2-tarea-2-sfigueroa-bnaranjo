@@ -14,7 +14,7 @@ how to use the page table and disk interfaces.
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
-#include <limits.h>
+#include <assert.h>
 
 struct node *head = NULL;
 
@@ -167,14 +167,17 @@ void page_fault_handler_RAND( struct page_table *pt, int page )
 }
 
 // Victimiza un marco aleatorio dentro de la primera mitad de marcos e inserta la pagina en un marco de la mitad
-void page_fault_handler_CUSTOM( struct page_table *pt, int page )
+void page_fault_handler_CUSTOM( struct page_table *pt, int page)
 {
+	int nframes = 10;//esto debería irse
 	struct node *node = head;
 	int using_frame = -1;
 	char * physical_pointer;
 	physical_pointer = page_table_get_physmem(pt);
 
 	if(using_frame == -1){
+		printf("[page_fault_handler_CUSTOM] nframes: '%d'\n", nframes);
+		assert(nframes > 2);
 		int ran_num = lrand48()%(nframes/2);
 		int ran_num2 = ran_num;
 		while(ran_num > 0){
@@ -233,7 +236,6 @@ int main( int argc, char *argv[] )
 		algorithm = argv[3];
 		program = argv[4];
 	}
-
 	
 	
 	disk = disk_open("myvirtualdisk",npages);
@@ -251,6 +253,7 @@ int main( int argc, char *argv[] )
 		push_lfr(head, -1, i);
 	}
 	struct page_table *pt;
+	printf("[MAIN] nframes: '%d'\n",nframes);
 	if (strcmp(algorithm, "rand") == 0){
 		pt = page_table_create( npages, nframes, page_fault_handler_RAND );
 	}
@@ -272,7 +275,7 @@ int main( int argc, char *argv[] )
 	char *physmem = page_table_get_physmem(pt);
 
 	if(!strcmp(program,"sort")) {
-		sort_program(virtmem,npages*PAGE_SIZE);
+		sort_program(virtmem, npages*PAGE_SIZE);
 
 	} else if(!strcmp(program,"scan")) {
 		scan_program(virtmem,npages*PAGE_SIZE);
