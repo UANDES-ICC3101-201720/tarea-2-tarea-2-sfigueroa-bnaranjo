@@ -148,6 +148,7 @@ void page_fault_handler_RAND( struct page_table *pt, int page )
 	nframes = nframes;
 
 	if(using_frame == -1){
+		total_faults++;
 		int ran_num = lrand48()%nframes;
 		int ran_num2 = ran_num;
 		while(ran_num > 0){
