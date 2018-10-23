@@ -162,16 +162,44 @@ void page_fault_handler_CUSTOM( struct page_table *pt, int page )
 
 int main( int argc, char *argv[] )
 {
-	if(argc!=5) {
+	int npages;
+	int nframes;
+	char * algorithm;
+	const char *program;
+
+	if(argc==5) {
+		npages = atoi(argv[1]);
+		nframes = atoi(argv[2]);
+		algorithm = argv[3];
+		program = argv[4];
+	}
+	else if(argc==9) {
+		for (int i = 1; i < argc; i++) {
+			if(i+1 != argc) {
+				if(strcmp(argv[i], "-n") == 0) {
+					npages = atoi(argv[i+1]);
+					i++;
+				}
+				else if(strcmp(argv[i], "-f") == 0) {
+					nframes = atoi(argv[i+1]);
+					i++;
+				}
+				else if(strcmp(argv[i], "-a") == 0) {
+					algorithm = argv[i+1];
+					i++;
+				}
+				else if(strcmp(argv[i], "-p") == 0) {
+					program = argv[i+1];
+					i++;
+				}
+			}
+		}
+	}
+	else {
 		/* Add 'random' replacement algorithm if the size of your group is 3 */
 		printf("use: virtmem <npages> <nframes> <lru|fifo> <sort|scan|focus>\n");
 		return 1;
 	}
-
-	int npages = atoi(argv[1]);
-	nframes = atoi(argv[2]);
-	char * algorithm = argv[3];
-	const char *program = argv[4];
 
 	disk = disk_open("myvirtualdisk",npages);
 	if(!disk) {
@@ -189,7 +217,7 @@ int main( int argc, char *argv[] )
 	}
 	struct page_table *pt;
 	if (strcmp(algorithm, "rand") == 0){
-			pt = page_table_create( npages, nframes, page_fault_handler_RAND );
+		pt = page_table_create( npages, nframes, page_fault_handler_RAND );
 	}
 	else if (strcmp(algorithm, "fifo") == 0){
 		pt = page_table_create( npages, nframes, page_fault_handler_FIFO );
@@ -218,7 +246,7 @@ int main( int argc, char *argv[] )
 		focus_program(virtmem,npages*PAGE_SIZE);
 
 	} else {
-		fprintf(stderr,"unknown program: %s\n",argv[3]);
+		fprintf(stderr,"unknown program: %s\n",program);
 
 	}
 
