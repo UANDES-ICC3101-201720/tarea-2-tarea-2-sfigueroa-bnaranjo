@@ -28,6 +28,8 @@ struct node{
 	struct node *next;
 };
 
+int total_faults = 0;
+
 void popf(struct node **head){
 	struct node * next_node = NULL;
 	next_node = (*head)->next;
@@ -123,6 +125,7 @@ void page_fault_handler_FIFO( struct page_table *pt, int page )
 	physical_pointer = page_table_get_physmem(pt);
 
 	if(using_frame == -1){
+		total_faults ++;
 		node = head;
 		int old_page = node->page;
 		using_frame = node->frame;
@@ -176,6 +179,7 @@ void page_fault_handler_CUSTOM( struct page_table *pt, int page)
 	physical_pointer = page_table_get_physmem(pt);
 
 	if(using_frame == -1){
+		total_faults++;
 		printf("[page_fault_handler_CUSTOM] nframes: '%d'\n", nframes);
 		assert(nframes > 2);
 		int ran_num = lrand48()%(nframes/2);
@@ -253,7 +257,6 @@ int main( int argc, char *argv[] )
 		push_lfr(head, -1, i);
 	}
 	struct page_table *pt;
-	printf("[MAIN] nframes: '%d'\n",nframes);
 	if (strcmp(algorithm, "rand") == 0){
 		pt = page_table_create( npages, nframes, page_fault_handler_RAND );
 	}
@@ -290,6 +293,6 @@ int main( int argc, char *argv[] )
 
 	page_table_delete(pt);
 	disk_close(disk);
-
+	printf("Total faults: %d\n",total_faults);
 	return 0;
 }
