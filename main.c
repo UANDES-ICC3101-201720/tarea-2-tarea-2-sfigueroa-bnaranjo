@@ -145,6 +145,7 @@ void page_fault_handler_RAND( struct page_table *pt, int page )
 	int using_frame = -1;
 	char * physical_pointer;
 	physical_pointer = page_table_get_physmem(pt);
+	nframes = nframes;
 
 	if(using_frame == -1){
 		int ran_num = lrand48()%nframes;
@@ -209,7 +210,6 @@ void page_fault_handler_CUSTOM( struct page_table *pt, int page)
 int main( int argc, char *argv[] )
 {
 	int npages;
-	int nframes;
 	const char *algorithm;
 	const char *program;
 
