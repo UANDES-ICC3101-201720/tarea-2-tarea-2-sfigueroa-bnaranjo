@@ -2,3 +2,50 @@ Integrantes:
     Benjamin Naranjo
     Santiago Figueroa
 
+Algoritmos utilizados:
+1- FIFO:
+	Se reemplaza la pagina mas antigua.
+2- RAND:
+	Se reemplaza una pagina aleatoria.
+3- CUSTOM:
+	Se reemplaza una pagina aleatoria de la primera mitad, dejando a las mas nuevas en la segunda
+	mitad y victimizando a las paginas mas antiguas.
+
+
+Resultados:
+    |ALGORITMO	|PROGRAMA   |PAGINAS	|FRAMES |PAGE_FAULTS
+1	|rand       |focus      |100    	|10     |288
+2	|			|			|11			|10		|32
+3	|			|			|10			|10		|24
+4	|			|sort		|100		|10		|1085
+5	|			|			|11			|10		|31
+6	|			|			|10			|10		|17
+7	|			|scan		|100		|10		|1100
+8	|			|			|11			|10		|43
+9	|			|			|10			|10		|30
+10	|fifo		|focus		|100		|10		|278
+11	|			|			|11			|10		|12
+12	|			|			|10			|10		|0
+13	|			|sort		|100		|10		|998
+14	|			|			|11			|10		|34
+15	|			|			|10			|10		|0
+16	|			|scan		|100		|10		|1090
+17	|			|			|11			|10		|111
+18	|			|			|10			|10		|0
+19	|custom		|focus		|100		|10		|291
+20	|			|			|11			|10		|49
+21	|			|			|10			|10		|49
+22	|			|sort		|100		|10		|1144
+23	|			|			|11			|10		|47
+24	|			|			|10			|10		|42
+25	|			|scan		|100		|10		|1100
+26	|			|			|11			|10		|90
+27	|			|			|10			|10		|71
+
+CONCLUSIONES.
+El mejor algoritmo de los tres, juzgando segun la menor cantidad de faltas de pagina, es el FIFO, 
+y el peor seria el que hicimos nosotros.
+
+
+
+
