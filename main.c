@@ -15,10 +15,10 @@ how to use the page table and disk interfaces.
 #include <string.h>
 #include <errno.h>
 
-struct node *head;
-struct node *node;
-struct page_table *pt;
+struct node *head = NULL;
+
 struct disk *disk;
+
 //Linked lists
 struct node{
 	int frame;
@@ -57,7 +57,7 @@ void append(int nvalue, int npage, struct node * initial){
 	next->page = npage;
 }
 
-void push_fr(struct node * head, int page, int frame){
+void push_lfr(struct node * head, int page, int frame){
 	struct node * current = head;
 	while(current->next != NULL){
 		current = current->next;
@@ -80,7 +80,7 @@ void print_list(struct node * list){
 void page_fault_handler_FIFO( struct page_table *pt, int page )
 {
 	printf("page fault on page #%d\n",page);
-	node = head;
+	struct node *node = head;
 	int using_frame = -1;
 	while(node != NULL && using_frame == -1){
 		if(node->page == -1){
@@ -98,13 +98,14 @@ void page_fault_handler_FIFO( struct page_table *pt, int page )
 		using_frame = node->frame;
 		disk_write(disk, old_page, &physical_pointer[using_frame * PAGE_SIZE]);
 		page_table_set_entry(pt, old_page, using_frame, 0);
-		push_fr(head, page, using_frame);
+		push_lfr(head, page, using_frame);
 		popf(&head);
 	}
 	if(using_frame != -1){
 		page_table_set_entry(pt, page, using_frame, PROT_READ|PROT_WRITE);
 		disk_read(disk, page, &physical_pointer[using_frame * PAGE_SIZE]);
 	}
+		page_table_print(pt);
 }
 
 void page_fault_handler_RAND( struct page_table *pt, int page )
@@ -131,7 +132,7 @@ int main( int argc, char *argv[] )
 
 	int npages = atoi(argv[1]);
 	int nframes = atoi(argv[2]);
-	char * algorithm = argv[4];
+	char * algorithm = argv[3];
 	const char *program = argv[4];
 
 	disk = disk_open("myvirtualdisk",npages);
@@ -139,24 +140,26 @@ int main( int argc, char *argv[] )
 		fprintf(stderr,"couldn't create virtual disk: %s\n",strerror(errno));
 		return 1;
 	}
+
 	head = malloc(sizeof(struct node));
 	head->frame = 0;
 	head->page = -1;
 	head->next = NULL;
 
 	for(int i = 1; i<nframes; i++){
-		push_fr(head, -1, i);
+		push_lfr(head, -1, i);
 	}
-
+	struct page_table *pt;
 	if (strcmp(algorithm, "rand") == 0){
 			pt = page_table_create( npages, nframes, page_fault_handler_RAND );
-		}
-		else if (strcmp(algorithm, "fifo") == 0){
-			pt = page_table_create( npages, nframes, page_fault_handler_FIFO );
-		}
-		else if (strcmp(algorithm, "custom") == 0){
-			pt = page_table_create( npages, nframes, page_fault_handler_CUSTOM );
-		}
+
+	}
+	else if (strcmp(algorithm, "fifo") == 0){
+		pt = page_table_create( npages, nframes, page_fault_handler_FIFO );
+	}
+	else if (strcmp(algorithm, "custom") == 0){
+		pt = page_table_create( npages, nframes, page_fault_handler_CUSTOM );
+	}
 
 	if(!pt) {
 		fprintf(stderr,"couldn't create page table: %s\n",strerror(errno));
