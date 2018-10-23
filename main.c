@@ -14,11 +14,13 @@ how to use the page table and disk interfaces.
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
+#include <limits.h>
+#include <getopt.h>
 
 struct node *head = NULL;
 
 struct disk *disk;
-
+int *frame_table;
 int nframes;
 //Linked lists
 struct node{
@@ -164,43 +166,39 @@ int main( int argc, char *argv[] )
 {
 	int npages;
 	int nframes;
-	char * algorithm;
+	const char *algorithm;
 	const char *program;
 
-	if(argc==5) {
+	if(argc!=5) {
+		if(argc==9){
+			for (int i = 0; i<argc; i++){
+				if(i + 1 != argc){
+					if(!strcmp(argv[i],"-n")){
+						npages = atoi(argv[i+1]);
+						i++;
+					} else if(!strcmp(argv[i],"-f")){
+						nframes = atoi(argv[i+1]);
+						i++;
+					}else if(!strcmp(argv[i],"-a")){
+						algorithm = argv[i+1];
+						i++;
+					}else if(!strcmp(argv[i],"-p")){
+						program = argv[i+1];
+						i++;
+					}
+				}
+			}
+		}
+		
+	}else{
 		npages = atoi(argv[1]);
 		nframes = atoi(argv[2]);
 		algorithm = argv[3];
 		program = argv[4];
 	}
-	else if(argc==9) {
-		for (int i = 1; i < argc; i++) {
-			if(i+1 != argc) {
-				if(strcmp(argv[i], "-n") == 0) {
-					npages = atoi(argv[i+1]);
-					i++;
-				}
-				else if(strcmp(argv[i], "-f") == 0) {
-					nframes = atoi(argv[i+1]);
-					i++;
-				}
-				else if(strcmp(argv[i], "-a") == 0) {
-					algorithm = argv[i+1];
-					i++;
-				}
-				else if(strcmp(argv[i], "-p") == 0) {
-					program = argv[i+1];
-					i++;
-				}
-			}
-		}
-	}
-	else {
-		/* Add 'random' replacement algorithm if the size of your group is 3 */
-		printf("use: virtmem <npages> <nframes> <lru|fifo> <sort|scan|focus>\n");
-		return 1;
-	}
 
+	
+	
 	disk = disk_open("myvirtualdisk",npages);
 	if(!disk) {
 		fprintf(stderr,"couldn't create virtual disk: %s\n",strerror(errno));
@@ -233,7 +231,7 @@ int main( int argc, char *argv[] )
 
 
 	char *virtmem = page_table_get_virtmem(pt);
-
+	
 	char *physmem = page_table_get_physmem(pt);
 
 	if(!strcmp(program,"sort")) {

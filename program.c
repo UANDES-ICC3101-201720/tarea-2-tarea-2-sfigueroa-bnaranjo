@@ -7,7 +7,6 @@ Make all of your changes to main.c instead.
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <signal.h>
 
 static int compare_bytes( const void *pa, const void *pb )
 {
