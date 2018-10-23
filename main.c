@@ -15,7 +15,6 @@ how to use the page table and disk interfaces.
 #include <string.h>
 #include <errno.h>
 #include <limits.h>
-#include <getopt.h>
 
 struct node *head = NULL;
 
@@ -84,6 +83,19 @@ void push_lfr(struct node * head, int page, int frame){
 	current->next->page = page;
 	current->next->frame = frame;
 	current->next->next = NULL;
+}
+void push_mdl(struct node * head, int page, int frame){
+	struct node * current = head;
+	int middle = nframes/2;
+	while(current->next != NULL && middle>0){
+		current = current->next;
+		middle--;
+	}
+	struct node * old_next = current->next;
+	current->next = malloc(sizeof(struct node));
+	current->next->page = page;
+	current->next->frame = frame;
+	current->next->next = old_next;
 }
 
 void print_list(struct node * list){
@@ -154,10 +166,35 @@ void page_fault_handler_RAND( struct page_table *pt, int page )
 		page_table_print(pt);
 }
 
+// Victimiza un marco aleatorio dentro de la primera mitad de marcos e inserta la pagina en un marco de la mitad
 void page_fault_handler_CUSTOM( struct page_table *pt, int page )
 {
-	printf("page fault on page #%d\n",page);
-	exit(1);
+	struct node *node = head;
+	int using_frame = -1;
+	char * physical_pointer;
+	physical_pointer = page_table_get_physmem(pt);
+
+	if(using_frame == -1){
+		int ran_num = lrand48()%(nframes/2);
+		int ran_num2 = ran_num;
+		while(ran_num > 0){
+			node = node->next;
+			ran_num--;
+		}
+		using_frame = node->frame;
+		int old_page = node->page;
+		if(old_page != -1){
+			disk_write(disk, old_page, &physical_pointer[using_frame * PAGE_SIZE]);
+			page_table_set_entry(pt, old_page, using_frame, 0);
+		}
+		popi(&head, ran_num2);
+		push_mdl(head, page, using_frame);
+	}
+	if(using_frame != -1){
+		page_table_set_entry(pt, page, using_frame, PROT_READ|PROT_WRITE);
+		disk_read(disk, page, &physical_pointer[using_frame * PAGE_SIZE]);
+	}
+		page_table_print(pt);
 }
 
 
