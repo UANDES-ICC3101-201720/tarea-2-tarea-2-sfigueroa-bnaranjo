@@ -19,6 +19,7 @@ struct node *head = NULL;
 
 struct disk *disk;
 
+int nframes;
 //Linked lists
 struct node{
 	int frame;
@@ -31,6 +32,21 @@ void popf(struct node **head){
 	next_node = (*head)->next;
 	free(*head);
 	*head = next_node;
+}
+
+void popi(struct node ** head, int index){
+	struct node * current = *head;
+	struct node * temp = NULL;
+	if (index ==0){
+		popf(head);
+		return;
+	}
+	for(int i = 0; i < index-1; i++){
+		current = current->next;
+	}
+	temp = current->next;
+	current->next = temp->next;
+	free(temp);
 }
 
 
@@ -105,13 +121,35 @@ void page_fault_handler_FIFO( struct page_table *pt, int page )
 		page_table_set_entry(pt, page, using_frame, PROT_READ|PROT_WRITE);
 		disk_read(disk, page, &physical_pointer[using_frame * PAGE_SIZE]);
 	}
-		page_table_print(pt);
 }
-
 void page_fault_handler_RAND( struct page_table *pt, int page )
 {
-	printf("page fault on page #%d\n",page);
-	exit(1);
+	struct node *node = head;
+	int using_frame = -1;
+	char * physical_pointer;
+	physical_pointer = page_table_get_physmem(pt);
+
+	if(using_frame == -1){
+		int ran_num = lrand48()%nframes;
+		int ran_num2 = ran_num;
+		while(ran_num > 0){
+			node = node->next;
+			ran_num--;
+		}
+		using_frame = node->frame;
+		int old_page = node->page;
+		if(old_page != -1){
+			disk_write(disk, old_page, &physical_pointer[using_frame * PAGE_SIZE]);
+			page_table_set_entry(pt, old_page, using_frame, 0);
+		}
+		popi(&head, ran_num2);
+		push_lfr(head, page, using_frame);
+	}
+	if(using_frame != -1){
+		page_table_set_entry(pt, page, using_frame, PROT_READ|PROT_WRITE);
+		disk_read(disk, page, &physical_pointer[using_frame * PAGE_SIZE]);
+	}
+		page_table_print(pt);
 }
 
 void page_fault_handler_CUSTOM( struct page_table *pt, int page )
@@ -131,7 +169,7 @@ int main( int argc, char *argv[] )
 	}
 
 	int npages = atoi(argv[1]);
-	int nframes = atoi(argv[2]);
+	nframes = atoi(argv[2]);
 	char * algorithm = argv[3];
 	const char *program = argv[4];
 
@@ -152,7 +190,6 @@ int main( int argc, char *argv[] )
 	struct page_table *pt;
 	if (strcmp(algorithm, "rand") == 0){
 			pt = page_table_create( npages, nframes, page_fault_handler_RAND );
-
 	}
 	else if (strcmp(algorithm, "fifo") == 0){
 		pt = page_table_create( npages, nframes, page_fault_handler_FIFO );
